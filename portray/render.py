@@ -9,10 +9,9 @@ from contextlib import contextmanager
 from glob import glob
 from typing import Dict, Iterator, Tuple
 
-import mkdocs.config as mkdocs_config
 import mkdocs.exceptions as _mkdocs_exceptions
 from mkdocs.commands.build import build as mkdocs_build
-from mkdocs.config.defaults import get_schema as mkdocs_schema
+from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.utils import is_markdown_file
 from pdocs import as_markdown as pdocs_as_markdown
 from portray.exceptions import DocumentationAlreadyExists
@@ -173,8 +172,8 @@ def documentation_in_temp_folder(config: dict) -> Iterator[Tuple[str, str]]:
             yield input_dir, temp_output_dir
 
 
-def _mkdocs_config(config: dict) -> mkdocs_config.Config:
-    config_instance = mkdocs_config.Config(schema=mkdocs_schema())
+def _mkdocs_config(config: dict) -> MkDocsConfig:
+    config_instance = MkDocsConfig()
     config_instance.load_dict(config)
 
     errors, warnings = config_instance.validate()
@@ -189,7 +188,11 @@ def _mkdocs_config(config: dict) -> mkdocs_config.Config:
             f"Aborted with {len(warnings)} Configuration Warnings in 'strict' mode!"
         )
 
-    config_instance.config_file_path = config["config_file_path"]
+    # fix: In this senario, the plugins are created but `on_startup` is not called.
+    #      Unfortunately, the "search" plugin requires the `is_dirty` flag
+    #      which is only set during the `on_startup` call.
+    config_instance.plugins["material/search"].on_startup(command="build", dirty=False)
+
     return config_instance
 
 
