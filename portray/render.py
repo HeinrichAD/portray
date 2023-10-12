@@ -232,7 +232,8 @@ def _mkdocs_config(config: dict) -> MkDocsConfig:
     # fix: In this senario, the plugins are created but `on_startup` is not called.
     #      Unfortunately, the "search" plugin requires the `is_dirty` flag
     #      which is only set during the `on_startup` call.
-    config_instance.plugins["material/search"].on_startup(command="build", dirty=False)
+    if config_instance.plugins.__contains__("material/search"):
+        config_instance.plugins["material/search"].on_startup(command="build", dirty=False)
 
     return config_instance
 
