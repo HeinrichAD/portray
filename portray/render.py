@@ -7,7 +7,7 @@ import sys
 import tempfile
 from contextlib import contextmanager
 from glob import glob
-from typing import Dict, Iterator, Tuple
+from typing import Dict, Iterator, Optional, Tuple
 
 import mkdocs.exceptions as _mkdocs_exceptions
 from mkdocs.commands.build import build as mkdocs_build
@@ -50,13 +50,53 @@ def documentation(config: dict, overwrite: bool = False) -> None:
         shutil.copytree(documentation_output, config["output_dir"])
 
 
-def pdocs(config: dict) -> None:
+def pdocs(
+    config: dict, compress_package_names: bool = False, *, modules: Optional[list] = None
+) -> None:
     """Render this project using the specified pdoc config passed into pdoc.
 
     This rendering is from code definition to Markdown so that
     it will be compatible with MkDocs.
     """
+    modules = modules or []
     pdocs_as_markdown(**config)
+    if compress_package_names and modules:
+        _compress_package_names(config["output_dir"], modules)
+
+
+def _compress_package_names(directory: str, modules: list) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        for root_package in _remove_nested_modules(modules):
+            source_dir = os.path.join(directory, root_package.replace(".", os.sep))
+            package_temp_dir = os.path.join(temp_dir, root_package)
+            shutil.move(source_dir, package_temp_dir)
+        shutil.rmtree(directory)
+        shutil.move(temp_dir, directory)
+
+
+def _remove_nested_modules(modules: list) -> list:
+    """Remove nested packages from the list of modules, keeping only the root packages.
+
+    - `["a.b", "a.b.d"]` -> `["a.b"]`
+    - `["a.b.c", "a.b.d"]` -> `["a.b.c", "a.b.d"]`
+    - `["a.b.c", "a.b.d", "a"]` -> `["a"]`
+    - `["a.b", "a.b.c", "b"]` -> `["a.b", "b"]`
+    """
+    if len(modules) < 2:
+        return modules
+
+    modules = [*modules]
+    root_packages: list = []
+    while len(modules) > 0:
+        m = modules.pop(0)
+        for i in range(len(root_packages) - 1, -1, -1):
+            if root_packages[i].startswith(m):
+                root_packages.pop(i)
+        root_packages.append(m)
+        for i in range(len(modules) - 1, -1, -1):
+            if modules[i].startswith(m):
+                modules.pop(i)
+    return root_packages
 
 
 def mkdocs(config: dict):
@@ -141,14 +181,15 @@ def documentation_in_temp_folder(config: dict) -> Iterator[Tuple[str, str]]:
                                 os.path.join(input_dir, index_page), destination_index_page
                             )
 
-            if config["include_reference_documentation"] and (
-                config["include_reference_documentation"] not in ("false", "False")
-                or config["include_reference_documentation"]
-            ):
+            if config["include_reference_documentation"]:
                 with yaspin(text="Auto generating reference documentation using pdocs") as spinner:
                     if "output_dir" not in config["pdocs"]:
                         config["pdocs"]["output_dir"] = os.path.join(input_dir, "reference")
-                    pdocs(config["pdocs"])
+                    pdocs(
+                        config["pdocs"],
+                        config["compress_package_names_for_reference_documentation"],
+                        modules=config["modules"],
+                    )
                     reference_docs = _nested_docs(config["pdocs"]["output_dir"], input_dir, config)
                     nav.append({"Reference": reference_docs})  # type: ignore
                     spinner.ok("Done")
@@ -224,10 +265,17 @@ def _sorted_docs(directory: str) -> list:
 
 
 def _label(path: str, config: Dict) -> str:
+    is_dir = os.path.isdir(path)
     label = os.path.basename(path)
-    if "." in label:
+    if not is_dir and "." in label:
         label = ".".join(label.split(".")[:-1])
-    label = label.replace("-", " ").replace("_", " ").title()
+    label = label.replace("-", " ").replace("_", " ")
+    if (
+        not is_dir
+        or not config["compress_package_names_for_reference_documentation"]
+        or label not in config["modules"]
+    ):
+        label = label.title()
     return config["labels"].get(label, label)
 
 

@@ -186,3 +186,25 @@ def test_setting_output_dir_in_pyproject_overwrites_default(temporary_dir):
         pyproject.write(FAKE_PYPROJECT_TOML_BASIC)
     config = api.project_configuration(directory=temporary_dir, config_file=config_file)
     assert config["output_dir"] == "docs_output"
+
+
+def test_deep_module_reduction(temporary_dir, chdir):
+    with chdir(temporary_dir):
+        package_dir = os.path.join(temporary_dir, os.sep.join(["a", "b", "c"]))
+        os.makedirs(package_dir)
+        with open(os.path.join(package_dir, "my_module.py"), "w") as pathless_module:
+            pathless_module.write("def my_method():\n    pass\n")
+
+        # Rendering with no module identification should fail
+        with pytest.raises(exceptions.NoProjectFound):
+            api.as_html()
+
+        # With module specification, even without path should succeed
+        api.as_html(modules=["a.b.c"])
+
+        # With deep module reduction enabled
+        with open(os.path.join(temporary_dir, "pyproject.toml"), "w") as pyproject:
+            pyproject.write(
+                "[tool.portray]\ncompress_package_names_for_reference_documentation = true"
+            )
+        api.as_html(modules=["a.b.c"], overwrite=True)

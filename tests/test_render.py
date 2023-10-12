@@ -33,3 +33,11 @@ def test_document_sort(temporary_dir):
     # sort files (with index.md)
     docs = render._sorted_docs(temporary_dir)
     assert docs == files
+
+
+def test_nested_modules_extraction():
+    assert render._remove_nested_modules(["a.b"]) == ["a.b"]
+    assert render._remove_nested_modules(["a.b", "a.b.d"]) == ["a.b"]
+    assert render._remove_nested_modules(["a.b.c", "a.b.d"]) == ["a.b.c", "a.b.d"]
+    assert render._remove_nested_modules(["a.b.c", "a.b.d", "a"]) == ["a"]
+    assert render._remove_nested_modules(["a.b", "a.b.c", "b"]) == ["a.b", "b"]
