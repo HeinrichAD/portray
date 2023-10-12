@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from hypothesis_auto import auto_test
 from portray import config, exceptions
@@ -39,6 +40,36 @@ just = "kidding"
 extra_markdown_extensions = ["smarty"]
 """
 
+FAKE_MKDOCS_YML_FILE = """
+site_name: Fake mkdocs site
+theme:
+  name: material
+  features:
+    - content.code.annotation
+    - navigation.tabs
+    - search.highlight
+    - toc.integrate
+  language: en
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+      primary: teal
+      accent: purple
+    - scheme: slate
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+      primary: teal
+      accent: lime
+markdown_extensions:
+  - admonition
+  - attr_list
+  - footnotes
+  - md_in_html
+"""
+
 
 def test_project_properties(project_dir):
     auto_test(config.project, auto_allow_exceptions_=(exceptions.NoProjectFound,))
@@ -73,6 +104,16 @@ def test_toml_properties():
 
 def test_mkdocs_properties():
     auto_test(config.mkdocs)
+
+
+def test_mkdocs_properties_with_custom_mkdocs_file(temporary_dir, project_dir, chdir):
+    with chdir(temporary_dir):
+        temp_project_dir = os.path.join(temporary_dir, "portray")
+        shutil.copytree(project_dir, temp_project_dir)
+        with chdir(temp_project_dir):
+            with open(os.path.join(temp_project_dir, "mkdocs.yml"), "w") as mkdocs_file:
+                mkdocs_file.write(FAKE_MKDOCS_YML_FILE)
+            auto_test(config.mkdocs, temp_project_dir)
 
 
 def test_pdocs_properties():
