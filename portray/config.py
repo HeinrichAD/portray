@@ -5,7 +5,7 @@ import os
 import re
 import warnings
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 import mkdocs.config as _mkdocs_config  # noqa
 import mkdocs.exceptions as _mkdocs_exceptions  # noqa
@@ -22,6 +22,7 @@ PORTRAY_DEFAULTS = {
     "host": "127.0.0.1",
     "append_directory_to_python_path": True,
     "include_reference_documentation": True,
+    "compress_package_names_for_reference_documentation": False,
     "labels": {"Cli": "CLI", "Api": "API", "Http": "HTTP", "Pypi": "PyPI"},
     "extra_markdown_extensions": [],
 }
@@ -63,6 +64,14 @@ def project(directory: str, config_file: str, **overrides) -> dict:
     project_config.update(toml(os.path.join(directory, config_file)))
     project_config.update(overrides)
 
+    bool_keys = [
+        "append_directory_to_python_path",
+        "include_reference_documentation",
+        "compress_package_names_for_reference_documentation",
+    ]
+    for key in bool_keys:
+        project_config[key] = _str2bool(project_config[key])
+
     project_config.setdefault("modules", [os.path.basename(os.getcwd()).replace("-", "_")])
     project_config.setdefault("pdocs", {}).setdefault("modules", project_config["modules"])
 
@@ -80,6 +89,23 @@ def project(directory: str, config_file: str, **overrides) -> dict:
         )
     project_config["pdocs"] = pdocs(directory, **project_config.get("pdocs", {}))
     return project_config
+
+
+def _str2bool(value: Union[str, bool]) -> bool:
+    """Interpret value as a boolean.
+
+    This code snippet was inspired by <https://stackoverflow.com/a/43357954>.
+    """
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    _value = value.strip().lower()
+    if _value in ("yes", "true", "t", "y", "1"):
+        return True
+    elif _value in ("no", "false", "f", "n", "0", ""):
+        return False
+    raise ValueError(f"{value} is not a valid boolean value")
 
 
 def setup_py(location: str) -> dict:

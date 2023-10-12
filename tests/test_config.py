@@ -1,6 +1,7 @@
 import os
 import shutil
 
+import pytest
 from hypothesis_auto import auto_test
 from portray import config, exceptions
 
@@ -179,3 +180,14 @@ def test_repository_custom_config(project_dir):
 
 def test_repository_no_config_no_repository(temporary_dir):
     assert config.repository(temporary_dir) == {}
+
+
+def test_str2bool():
+    for value in [True, "yes", "true", "t", "y", "1", "True", "TRUE", "tRuE"]:
+        assert config._str2bool(value) is True
+
+    for value in [False, "no", "false", "f", "n", "0", "False", "FALSE", "fAlSe", "", None]:
+        assert config._str2bool(value) is False
+
+    with pytest.raises(ValueError):
+        config._str2bool("not true or false")
