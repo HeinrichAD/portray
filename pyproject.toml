@@ -9,7 +9,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = ">=3.8"
 hug = ">=2.6"
-mkdocs = ">=1.3.0,<1.4.0"
+mkdocs = ">=1.5.3,<2.0"
 pdocs = ">=1.2.0"
 toml = ">=0.10.0"
 mkdocs-material = ">=7.0"
@@ -18,19 +18,22 @@ pymdown-extensions = ">=7.0"
 yaspin = ">=0.15.0,<3"
 livereload = ">=2.6.3"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
 bandit = ">=1.6"
 pytest = ">=5.1"
 safety = ">=1.8"
 black = {version = ">1.0.0", python = ">=3.7.0,<4.0"}
 mypy = ">0.730.0"
 types-toml = ">0.0"
-ipython = ">=7.7"
+ipython = ">=8.10.0"
 pytest-cov = ">=2.7"
 pytest-mock = ">=1.10"
-hypothesis-auto = {version = ">=0.0.4", python = ">=3.7.0,<4.0"}
+hypothesis-auto = {git = "https://github.com/HeinrichAD/hypothesis-auto.git", branch = "develop", python = ">=3.7.0"}
 pprofile = ">=2.0"
-ruff = ">=0.0.191"
+ruff = ">=0.0.292"
 cruft = {version = ">=2.2", python = ">=3.7.0,<4.0"}
 
 [tool.poetry.scripts]

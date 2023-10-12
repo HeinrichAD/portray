@@ -8,13 +8,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.8, 3.9]
-        os: [ubuntu-latest, ubuntu-18.04, macos-latest, windows-latest]
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+        os: [ubuntu-latest, ubuntu-20.04, macos-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Ubuntu cache
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         if: startsWith(matrix.os, 'ubuntu')
         with:
           path: ~/.cache/pip
@@ -24,7 +24,7 @@ jobs:
             ${{ matrix.os }}-${{ matrix.python-version }}-
 
       - name: macOS cache
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         if: startsWith(matrix.os, 'macOS')
         with:
           path: ~/Library/Caches/pip
@@ -34,7 +34,7 @@ jobs:
             ${{ matrix.os }}-${{ matrix.python-version }}-
 
       - name: Windows cache
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         if: startsWith(matrix.os, 'windows')
         with:
           path: c:\users\runneradmin\appdata\local\pip\cache
@@ -44,7 +44,7 @@ jobs:
             ${{ matrix.os }}-${{ matrix.python-version }}-
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -52,8 +52,8 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install --upgrade poetry
-          poetry install
-          poetry run pip install --upgrade tornado --ignore-installed || true
+          poetry export --format requirements.txt --with dev --without-hashes > requirements.txt
+          poetry run pip install -r requirements.txt
       - name: Test
         shell: bash
         run: |
@@ -61,4 +61,4 @@ jobs:
           poetry run coverage xml
       - name: Report Coverage
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
-        uses: codecov/codecov-action@v1.0.6
+        uses: codecov/codecov-action@v3
