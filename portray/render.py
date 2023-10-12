@@ -6,6 +6,7 @@ import shutil
 import sys
 import tempfile
 from contextlib import contextmanager
+from copy import deepcopy
 from glob import glob
 from typing import Dict, Iterator, Optional, Tuple
 
@@ -215,7 +216,7 @@ def documentation_in_temp_folder(config: dict) -> Iterator[Tuple[str, str]]:
 
 def _mkdocs_config(config: dict) -> MkDocsConfig:
     config_instance = MkDocsConfig()
-    config_instance.load_dict(config)
+    config_instance.load_dict(deepcopy(config))
 
     errors, warnings = config_instance.validate()
     if errors:
