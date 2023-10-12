@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional
 
 import mkdocs.config as _mkdocs_config  # noqa
 import mkdocs.exceptions as _mkdocs_exceptions  # noqa
+import yaml
 from git import Repo
 from portray.exceptions import NoProjectFound
 from toml import load as toml_load
@@ -210,11 +211,18 @@ def repository(
 
 def mkdocs(directory: str, **overrides) -> dict:
     """Returns back the configuration that will be used when running mkdocs"""
+    mkdocs_yaml_config = {}
+    mkdocs_yaml_config_file = os.path.join(directory, "mkdocs.yml")
+    if os.path.exists(mkdocs_yaml_config_file):
+        mkdocs_yaml_config = yaml.safe_load(open(mkdocs_yaml_config_file))
+
     mkdocs_config: Dict[str, Any] = {
         **MKDOCS_DEFAULTS,
         **repository(directory, **overrides),
+        **mkdocs_yaml_config,
         **overrides,
     }
+
     theme = mkdocs_config["theme"]
     if theme["name"].lower() == "material":
         if "custom_dir" in theme:
