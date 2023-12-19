@@ -83,6 +83,7 @@ venv/
 
 # Automatically generated files
 docs/preconvert
+docs/references
 site/
 out
 

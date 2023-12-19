@@ -72,7 +72,7 @@ def project(directory: str, config_file: str, **overrides) -> dict:
     for key in bool_keys:
         project_config[key] = _str2bool(project_config[key])
 
-    project_config.setdefault("modules", [os.path.basename(os.getcwd()).replace("-", "_")])
+    project_config.setdefault("modules", [os.path.basename(os.getcwd()).replace("-", "_").replace(" ", "_")])
     project_config.setdefault("pdocs", {}).setdefault("modules", project_config["modules"])
 
     mkdocs_config = project_config.get("mkdocs", {})
@@ -159,14 +159,16 @@ def toml(location: str) -> dict:
         config["file"] = location
 
         if "modules" not in config:
-            if "poetry" in tools and "name" in tools["poetry"]:
-                config["modules"] = [tools["poetry"]["name"]]
+            if "setuptools" in tools and "packages" in tools["setuptools"]:
+                config["modules"] = tools["setuptools"]["packages"]
             elif (
                 "flit" in tools
                 and "metadata" in tools["flit"]
                 and "module" in tools["flit"]["metadata"]
             ):
                 config["modules"] = [tools["flit"]["metadata"]["module"]]
+            elif "poetry" in tools and "name" in tools["poetry"]:
+                config["modules"] = [tools["poetry"]["name"]]
 
         return config
     except Exception as load_config_error:

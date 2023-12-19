@@ -10,7 +10,7 @@ readme = "README.md"
 python = ">=3.8"
 hug = ">=2.6"
 mkdocs = ">=1.5.3,<2.0"
-pdocs = ">=1.2.0"
+pdocs = {git = "https://github.com/HeinrichAD/pdocs.git", branch = "develop", python = ">=3.7.0"}
 PyYAML = ">=6.0"
 toml = ">=0.10.0"
 mkdocs-material = ">=7.0"
@@ -40,6 +40,9 @@ cruft = {version = ">=2.2", python = ">=3.7.0,<4.0"}
 
 [tool.poetry.scripts]
 portray = "portray.cli:__hug__.cli"
+
+[tool.poetry.plugins."mkdocs.plugins"]
+portray = "portray.mkdocs_plugin:MkdocsPlugin"
 
 [tool.portray.mkdocs.theme]
 favicon = "art/logo_small.png"
