@@ -1,0 +1,47 @@
+site_name: Portray
+
+repo_name: portray
+repo_url: https://github.com/HeinrichAD/portray/
+
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - search.highlight
+    - search.suggest
+  language: en
+  palette:
+    - scheme: default
+      primary: green
+      accent: lightgreen
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - extra
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+plugins:
+  - search
+  - portray
+
+# nav:
+#   - Home: index.md
+#   - Contributing:
+#     - "Contributing to portray": contributing/1.-contributing-guide.md
+#     - "HOPE 8 -- Style Guide for Hug Code": contributing/2.-coding-standard.md
+#     - "HOPE 11 -- Code of Conduct": contributing/3.-code-of-conduct.md
+#     - "Contributors": contributing/4.-acknowledgements.md
+#   - "Quick start":
+#     - "1. installation": quick_start/1.-installation.md
+#     - "Command Line Usage": quick_start/2.-cli.md
+#     - "Programmatic Python API Usage": quick_start/3.-api.md
+#     - "Configuring portray": quick_start/4.-configuration.md
+#   - Reference: $references
