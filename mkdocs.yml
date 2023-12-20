@@ -7,18 +7,19 @@ theme:
   name: material
   features:
     - content.code.copy
-    - navigation.tabs
-    - navigation.sections
     - navigation.expand
+    - navigation.footer
     - navigation.indexes
+    - navigation.sections
+    - navigation.tabs
     - navigation.top
     - search.highlight
     - search.suggest
   language: en
   palette:
     - scheme: default
-      primary: green
-      accent: lightgreen
+      primary: blue grey
+      accent: deep purple
 
 markdown_extensions:
   - admonition
@@ -26,6 +27,7 @@ markdown_extensions:
   - extra
   - pymdownx.details
   - pymdownx.highlight
+  - pymdownx.snippets
   - pymdownx.superfences
 
 plugins:

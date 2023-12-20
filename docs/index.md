@@ -1,5 +1,10 @@
-# Home
+---
+title: Home
+hide:
+  - navigation
+---
 
-[portray.api.as_html](pdoc:portray.api.as_html)
+<!-- markdownlint-disable-next-line MD025 -->
+#
 
-x.x
+--8<-- "README.md"
