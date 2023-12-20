@@ -5,16 +5,16 @@ import shutil
 from tempfile import mkdtemp
 from typing import Dict, List, Tuple, Union
 
-from mkdocs.config import base, config_options as c
+from mkdocs.config import base
+from mkdocs.config import config_options as c
 from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.plugins import BasePlugin, get_plugin_logger
 from mkdocs.structure import StructureItem
-from mkdocs.structure.files import get_files, Files
+from mkdocs.structure.files import Files, get_files
 from mkdocs.structure.nav import Navigation, Section
 from mkdocs.structure.pages import Page
-from portray.config import project, PDOCS_DEFAULTS, PORTRAY_DEFAULTS
+from portray.config import PDOCS_DEFAULTS, PORTRAY_DEFAULTS, project
 from portray.render import _nested_docs, pdocs
-
 
 HTML_LINK_REGEX = re.compile(r"<a[^>]*href=[\"']?(?P<href>[^\"' >]*)[\"']?[^>]*>[^<]*</a>")
 REFERENCE_PLACEHOLDER = "$references"
@@ -23,8 +23,12 @@ MkDocsConfigNav = List[Dict[str, Union[str, "MkDocsConfigNav"]]]
 
 
 class PortrayOptions(base.Config):
-    append_directory_to_python_path = c.Type(bool, default=PORTRAY_DEFAULTS["append_directory_to_python_path"])
-    include_reference_documentation = c.Type(bool, default=PORTRAY_DEFAULTS["include_reference_documentation"])
+    append_directory_to_python_path = c.Type(
+        bool, default=PORTRAY_DEFAULTS["append_directory_to_python_path"]
+    )
+    include_reference_documentation = c.Type(
+        bool, default=PORTRAY_DEFAULTS["include_reference_documentation"]
+    )
     compress_package_names_for_reference_documentation = c.Type(bool, default=True)
     labels = c.DictOfItems(c.Type(str), default=PORTRAY_DEFAULTS["labels"])
 
@@ -90,9 +94,7 @@ class MkdocsPlugin(BasePlugin[MkdocsPluginConfig]):
     def _get_api_nav_part(self) -> MkDocsConfigNav:
         # get API doc pages including their formated labels in correct order
         return _nested_docs(
-            self.project_config["pdocs"]["output_dir"],
-            self.api_dir,
-            self.project_config
+            self.project_config["pdocs"]["output_dir"], self.api_dir, self.project_config
         )
 
     def _replace_nav_placeholder(self, config: MkDocsConfig):
@@ -121,11 +123,8 @@ class MkdocsPlugin(BasePlugin[MkdocsPluginConfig]):
 
         # search for existing reference item, drop it and remember its title and navigation index/position
         for idx in range(len(nav.items) - 1, -1, -1):
-            if (
-                nav.items[idx].title == reference_section_title or (
-                    hasattr(nav.items[idx], "url") and
-                    nav.items[idx].url == REFERENCE_PLACEHOLDER
-                )
+            if nav.items[idx].title == reference_section_title or (
+                hasattr(nav.items[idx], "url") and nav.items[idx].url == REFERENCE_PLACEHOLDER
             ):
                 return nav.items.pop(idx).title, idx
 
@@ -138,7 +137,9 @@ class MkdocsPlugin(BasePlugin[MkdocsPluginConfig]):
         # if the correct alphabetically order of the API reference is at the end
         return reference_section_title, len(nav.items)
 
-    def _convert_to_section(self, title: str, refs: MkDocsConfigNav, config: MkDocsConfig, files: Files) -> Section:
+    def _convert_to_section(
+        self, title: str, refs: MkDocsConfigNav, config: MkDocsConfig, files: Files
+    ) -> Section:
         children: List[StructureItem] = []
         for ref in refs:
             key, value = tuple(ref.items())[0]
@@ -149,7 +150,11 @@ class MkdocsPlugin(BasePlugin[MkdocsPluginConfig]):
         return Section(title, children)
 
     def _post_nav_manipulation(self, nav: Navigation) -> Navigation:
-        from mkdocs.structure.nav import _add_previous_and_next_links, _add_parent_links, _get_by_type
+        from mkdocs.structure.nav import (
+            _add_parent_links,
+            _add_previous_and_next_links,
+            _get_by_type,
+        )
 
         # Get only the pages from the navigation, ignoring any sections and links.
         nav.pages = _get_by_type(nav, Page)
@@ -167,7 +172,7 @@ class MkdocsPlugin(BasePlugin[MkdocsPluginConfig]):
             url = f"{self.config['api_path']}/{'/'.join(qname)}/"
             if any((True for file in files._files if file.url == url)):
                 path = os.path.join(self.site_url, url)
-                rest = original_qname[len(qname):]
+                rest = original_qname[len(qname) :]
                 if rest:
                     return path + "#" + ".".join(rest)
                 else:
@@ -179,21 +184,29 @@ class MkdocsPlugin(BasePlugin[MkdocsPluginConfig]):
 
     def on_config(self, config: MkDocsConfig, **kwargs):
         self.config["api_path"] = self.config["api_path"].rstrip("/")
-        self.config["api_title"] = self.config["api_title"] or self.config["api_path"].rsplit("/", 1)[-1].title()
+        self.config["api_title"] = (
+            self.config["api_title"] or self.config["api_path"].rsplit("/", 1)[-1].title()
+        )
         self.api_dir = self.config["output_dir"]
         if not self.api_dir:
             self.api_dir = mkdtemp()
 
         self.docs_dir = config["site_dir"] or config["docs_dir"]
         self.site_url = config.get("site_url", config["site_dir"])
-        overrides = self._remove_none_items(dict(
-            pdocs=self.config["pdocs"],
-            modules=self.config["modules"],
-            output_dir=self.api_dir,
-            **self.config["portray"]
-        ))
-        self.project_config = project(self.config["project_root"], self.config["config_file"], **overrides)
-        self.project_config["pdocs"]["output_dir"] = os.path.join(self.api_dir, self.config["api_path"])
+        overrides = self._remove_none_items(
+            dict(
+                pdocs=self.config["pdocs"],
+                modules=self.config["modules"],
+                output_dir=self.api_dir,
+                **self.config["portray"],
+            )
+        )
+        self.project_config = project(
+            self.config["project_root"], self.config["config_file"], **overrides
+        )
+        self.project_config["pdocs"]["output_dir"] = os.path.join(
+            self.api_dir, self.config["api_path"]
+        )
 
         # disable "unrecognized relative link" warning for API links
         self._add_ignore_api_relative_link_log_messages()
@@ -224,12 +237,19 @@ class MkdocsPlugin(BasePlugin[MkdocsPluginConfig]):
         reference_docs = self._get_api_nav_part()
 
         # build and add reference section
-        reference_section_title, reference_section_index = self._get_navigation_api_item_title_and_position(nav)
-        reference_section = self._convert_to_section(reference_section_title, reference_docs, config, files)
+        (
+            reference_section_title,
+            reference_section_index,
+        ) = self._get_navigation_api_item_title_and_position(nav)
+        reference_section = self._convert_to_section(
+            reference_section_title, reference_docs, config, files
+        )
         nav.items.insert(reference_section_index, reference_section)
         return self._post_nav_manipulation(nav)
 
-    def on_page_content(self, html: str, page: Page, config: MkDocsConfig, files: Files) -> str | None:
+    def on_page_content(
+        self, html: str, page: Page, config: MkDocsConfig, files: Files
+    ) -> str | None:
         # replace all links to pdoc documentation with links to the generated documentation
         # use on_page_content instead of on_page_markdown since the latter would also replace links in code blocks
         handled: List[str] = []

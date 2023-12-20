@@ -49,6 +49,16 @@ output_dir = "docs_output"
 """
 
 
+def setup_module(module):
+    if os.path.exists("mkdocs.yml"):
+        os.rename("mkdocs.yml", "_mkdocs.yml")
+
+
+def teardown_module(module):
+    if os.path.exists("_mkdocs.yml"):
+        os.rename("_mkdocs.yml", "mkdocs.yml")
+
+
 @pytest.mark.skipif(
     sys.version_info < (3, 8) and sys.platform == "win32",
     reason="Tests fails on CI with this combination due to CI specific permission issues on.",

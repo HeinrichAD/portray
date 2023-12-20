@@ -72,7 +72,9 @@ def project(directory: str, config_file: str, **overrides) -> dict:
     for key in bool_keys:
         project_config[key] = _str2bool(project_config[key])
 
-    project_config.setdefault("modules", [os.path.basename(os.getcwd()).replace("-", "_").replace(" ", "_")])
+    project_config.setdefault(
+        "modules", [os.path.basename(os.getcwd()).replace("-", "_").replace(" ", "_")]
+    )
     project_config.setdefault("pdocs", {}).setdefault("modules", project_config["modules"])
 
     mkdocs_config = project_config.get("mkdocs", {})

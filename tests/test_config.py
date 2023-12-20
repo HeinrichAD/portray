@@ -72,6 +72,16 @@ markdown_extensions:
 """
 
 
+def setup_module(module):
+    if os.path.exists("mkdocs.yml"):
+        os.rename("mkdocs.yml", "_mkdocs.yml")
+
+
+def teardown_module(module):
+    if os.path.exists("_mkdocs.yml"):
+        os.rename("_mkdocs.yml", "mkdocs.yml")
+
+
 def test_project_properties(project_dir):
     auto_test(config.project, auto_allow_exceptions_=(exceptions.NoProjectFound,))
     auto_test(
