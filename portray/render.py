@@ -82,6 +82,8 @@ def _remove_nested_modules(modules: list) -> list:
     - `["a.b.c", "a.b.d"]` -> `["a.b.c", "a.b.d"]`
     - `["a.b.c", "a.b.d", "a"]` -> `["a"]`
     - `["a.b", "a.b.c", "b"]` -> `["a.b", "b"]`
+    - `["a", "ab.c", "ab.d", "abc"]` -> `["a", "ab.c", "ab.d", "abc"]`
+    - `["aa_bb", "aa_cc", "aa_dd"]` -> `["aa_bb", "aa_cc", "aa_dd"]`
     """
     if len(modules) < 2:
         return modules
@@ -91,11 +93,11 @@ def _remove_nested_modules(modules: list) -> list:
     while len(modules) > 0:
         m = modules.pop(0)
         for i in range(len(root_packages) - 1, -1, -1):
-            if root_packages[i].startswith(m):
+            if root_packages[i] == m or root_packages[i].startswith(m + "."):
                 root_packages.pop(i)
         root_packages.append(m)
         for i in range(len(modules) - 1, -1, -1):
-            if modules[i].startswith(m):
+            if modules[i] == m or modules[i].startswith(m + "."):
                 modules.pop(i)
     return root_packages
 
@@ -270,13 +272,13 @@ def _label(path: str, config: Dict) -> str:
     is_dir = os.path.isdir(path)
     label = os.path.basename(path)
     if not is_dir and "." in label:
-        label = ".".join(label.split(".")[:-1])
-    label = label.replace("-", " ").replace("_", " ")
+        label, _ = label.rsplit('.', 1)
     if (
         not is_dir
         or not config["compress_package_names_for_reference_documentation"]
         or label not in config["modules"]
     ):
+        label = label.replace("-", " ").replace("_", " ")
         label = label.title()
     return config["labels"].get(label, label)
 

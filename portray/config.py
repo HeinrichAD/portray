@@ -244,7 +244,7 @@ def mkdocs(directory: str, **overrides) -> dict:
     mkdocs_yaml_config = {}
     mkdocs_yaml_config_file = os.path.join(directory, "mkdocs.yml")
     if os.path.exists(mkdocs_yaml_config_file):
-        mkdocs_yaml_config = yaml.safe_load(open(mkdocs_yaml_config_file))
+        mkdocs_yaml_config = yaml.full_load(open(mkdocs_yaml_config_file))
 
     mkdocs_config: Dict[str, Any] = {
         **MKDOCS_DEFAULTS,
