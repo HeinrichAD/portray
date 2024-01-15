@@ -8,6 +8,7 @@ import tempfile
 from contextlib import contextmanager
 from copy import deepcopy
 from glob import glob
+from pdocs.render import text_index
 from typing import Dict, Iterator, Optional, Tuple
 
 import mkdocs.exceptions as _mkdocs_exceptions
@@ -67,10 +68,18 @@ def pdocs(
 
 def _compress_package_names(directory: str, modules: list) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
-        for root_package in _remove_nested_modules(modules):
+        root_packages = _remove_nested_modules(modules)
+        for root_package in root_packages:
             source_dir = os.path.join(directory, root_package.replace(".", os.sep))
             package_temp_dir = os.path.join(temp_dir, root_package)
             shutil.move(source_dir, package_temp_dir)
+        if len(root_packages) > 1:
+            text = text_index(None, overwrite_mapping={
+                root_package: root_package + "/"
+                for root_package in root_packages
+            })
+            with open(os.path.join(temp_dir, "index.md"), "w") as f:
+                f.write(text)
         shutil.rmtree(directory)
         shutil.move(temp_dir, directory)
 
