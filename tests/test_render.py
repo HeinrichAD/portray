@@ -41,5 +41,10 @@ def test_nested_modules_extraction():
     assert render._remove_nested_modules(["a.b.c", "a.b.d"]) == ["a.b.c", "a.b.d"]
     assert render._remove_nested_modules(["a.b.c", "a.b.d", "a"]) == ["a"]
     assert render._remove_nested_modules(["a.b", "a.b.c", "b"]) == ["a.b", "b"]
-    assert render._remove_nested_modules(["a", "ab.c", "ab.d", "abc"]) == ["a", "ab.c", "ab.d", "abc"]
+    assert render._remove_nested_modules(["a", "ab.c", "ab.d", "abc"]) == [
+        "a",
+        "ab.c",
+        "ab.d",
+        "abc",
+    ]
     assert render._remove_nested_modules(["aa_bb", "aa_cc", "aa_dd"]) == ["aa_bb", "aa_cc", "aa_dd"]

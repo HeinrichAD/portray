@@ -1,9 +1,11 @@
+import atexit
 import logging
+import math
 import os
 import re
 import shutil
 from tempfile import mkdtemp
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from mkdocs.config import base
 from mkdocs.config import config_options as c
@@ -13,6 +15,7 @@ from mkdocs.structure import StructureItem
 from mkdocs.structure.files import Files, get_files
 from mkdocs.structure.nav import Navigation, Section
 from mkdocs.structure.pages import Page
+from pdocs.extract import ExtractError, extract_module
 from portray.config import PDOCS_DEFAULTS, PORTRAY_DEFAULTS, project
 from portray.render import _nested_docs, pdocs
 
@@ -20,6 +23,13 @@ HTML_LINK_REGEX = re.compile(r"<a[^>]*href=[\"']?(?P<href>[^\"' >]*)[\"']?[^>]*>
 REFERENCE_PLACEHOLDER = "$references"
 
 MkDocsConfigNav = List[Dict[str, Union[str, "MkDocsConfigNav"]]]
+
+
+@atexit.register
+def cleanup():
+    if MkdocsPlugin.temp_dir:
+        # remove temporary directory including generated API doc files
+        shutil.rmtree(MkdocsPlugin.temp_dir, ignore_errors=True)
 
 
 class PortrayOptions(base.Config):
@@ -68,6 +78,9 @@ class MkdocsPlugin(BasePlugin[MkdocsPluginConfig]):
     - only support to have the API references as root item inside the navigation
     """
 
+    code_modification_time = 0.0
+    temp_dir: Optional[str] = None
+
     def __init__(self):
         self.nav_already_fixed = False
         self.logger = get_plugin_logger(__name__)
@@ -90,6 +103,37 @@ class MkdocsPlugin(BasePlugin[MkdocsPluginConfig]):
                 return not pattern.match(record.getMessage())
 
         logging.getLogger("mkdocs.structure.pages").addFilter(IgnoreAPIRelativeLinkWarningFilter())
+
+    def _check_if_code_changed(self) -> bool:
+        latest_code_modification_time = max(
+            self._get_latest_modification_time(module_path)
+            for module_path in self._get_module_path(self.project_config["modules"])
+        )
+        generate_code_references = (
+            latest_code_modification_time > self.__class__.code_modification_time
+            and not math.isclose(latest_code_modification_time, self.code_modification_time)
+        )
+        self.__class__.code_modification_time = latest_code_modification_time
+        return generate_code_references
+
+    def _get_latest_modification_time(self, path: str) -> float:
+        latest_modification_time = 0.0
+        for root, _, files in os.walk(path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                file_modification_time = os.path.getmtime(file_path)
+                if file_modification_time > latest_modification_time:
+                    latest_modification_time = file_modification_time
+        return latest_modification_time
+
+    def _get_module_path(self, module_names: List[str]) -> List[str]:
+        if not module_names:
+            return []
+        try:
+            return [extract_module(module_name).module.__path__[0] for module_name in module_names]
+        except ExtractError as error:
+            self.logger.error(error)
+            return []
 
     def _get_api_nav_part(self) -> MkDocsConfigNav:
         # get API doc pages including their formated labels in correct order
@@ -189,7 +233,9 @@ class MkdocsPlugin(BasePlugin[MkdocsPluginConfig]):
         )
         self.api_dir = self.config["output_dir"]
         if not self.api_dir:
-            self.api_dir = mkdtemp()
+            if not self.__class__.temp_dir:
+                self.__class__.temp_dir = mkdtemp()
+            self.api_dir = self.__class__.temp_dir
 
         self.docs_dir = config["site_dir"] or config["docs_dir"]
         self.site_url = config.get("site_url", config["site_dir"])
@@ -212,12 +258,18 @@ class MkdocsPlugin(BasePlugin[MkdocsPluginConfig]):
         self._add_ignore_api_relative_link_log_messages()
 
     def on_pre_build(self, config: MkDocsConfig, **kwargs):
-        # generate API documentation
-        pdocs(
-            self.project_config["pdocs"],
-            self.project_config["compress_package_names_for_reference_documentation"],
-            modules=self.project_config["modules"],
-        )
+        if self._check_if_code_changed():
+            # code changes detected, generate new API documentation
+            pdocs(
+                self.project_config["pdocs"],
+                self.project_config["compress_package_names_for_reference_documentation"],
+                modules=self.project_config["modules"],
+            )
+        else:
+            # no code changes detected
+            self.logger.info("No code changes detected. Skipping code reference generation.")
+
+        # collect API doc files
         self.api_files = self._get_api_files(config)
         if config["nav"]:
             self._replace_nav_placeholder(config)
@@ -259,8 +311,3 @@ class MkdocsPlugin(BasePlugin[MkdocsPluginConfig]):
                 html = html.replace(href, self._resolve_link(href[5:], files))
                 handled.append(href)
         return html
-
-    def on_post_build(self, *, config: MkDocsConfig) -> None:
-        if not self.config["output_dir"]:
-            # remove temporary directory including generated API doc files
-            shutil.rmtree(self.api_dir)

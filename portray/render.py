@@ -8,7 +8,6 @@ import tempfile
 from contextlib import contextmanager
 from copy import deepcopy
 from glob import glob
-from pdocs.render import text_index
 from typing import Dict, Iterator, Optional, Tuple
 
 import mkdocs.exceptions as _mkdocs_exceptions
@@ -16,6 +15,7 @@ from mkdocs.commands.build import build as mkdocs_build
 from mkdocs.config.defaults import MkDocsConfig
 from mkdocs.utils import is_markdown_file
 from pdocs import as_markdown as pdocs_as_markdown
+from pdocs.render import text_index
 from portray.exceptions import DocumentationAlreadyExists
 from yaspin import yaspin
 
@@ -74,10 +74,12 @@ def _compress_package_names(directory: str, modules: list) -> None:
             package_temp_dir = os.path.join(temp_dir, root_package)
             shutil.move(source_dir, package_temp_dir)
         if len(root_packages) > 1:
-            text = text_index(None, overwrite_mapping={
-                root_package: root_package + "/"
-                for root_package in root_packages
-            })
+            text = text_index(
+                None,
+                overwrite_mapping={
+                    root_package: root_package + "/" for root_package in root_packages
+                },
+            )
             with open(os.path.join(temp_dir, "index.md"), "w") as f:
                 f.write(text)
         shutil.rmtree(directory)
@@ -281,7 +283,7 @@ def _label(path: str, config: Dict) -> str:
     is_dir = os.path.isdir(path)
     label = os.path.basename(path)
     if not is_dir and "." in label:
-        label, _ = label.rsplit('.', 1)
+        label, _ = label.rsplit(".", 1)
     if (
         not is_dir
         or not config["compress_package_names_for_reference_documentation"]
