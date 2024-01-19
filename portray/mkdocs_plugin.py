@@ -5,7 +5,7 @@ import os
 import re
 import shutil
 from tempfile import mkdtemp
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Literal, Optional, Tuple, Union
 
 from mkdocs.config import base
 from mkdocs.config import config_options as c
@@ -17,9 +17,9 @@ from mkdocs.structure.nav import Navigation, Section
 from mkdocs.structure.pages import Page
 from pdocs.extract import ExtractError, extract_module
 from portray.config import PDOCS_DEFAULTS, PORTRAY_DEFAULTS, project
-from portray.render import _nested_docs, pdocs
+from portray.render import _nested_docs, _remove_nested_modules, pdocs
 
-HTML_LINK_REGEX = re.compile(r"<a[^>]*href=[\"']?(?P<href>[^\"' >]*)[\"']?[^>]*>[^<]*</a>")
+HTML_LINK_REGEX = re.compile(r"<a[^>]*href=[\"']?(?P<href>[^\"' >]*)[\"']?[^>]*>")
 REFERENCE_PLACEHOLDER = "$references"
 
 MkDocsConfigNav = List[Dict[str, Union[str, "MkDocsConfigNav"]]]
@@ -79,9 +79,11 @@ class MkdocsPlugin(BasePlugin[MkdocsPluginConfig]):
     """
 
     code_modification_time = 0.0
+    root_packages: Optional[List[str]] = None
     temp_dir: Optional[str] = None
 
     def __init__(self):
+        self.dirtyreload = False  # mkdocs flag "--dirtyreload"; see on_startup
         self.nav_already_fixed = False
         self.logger = get_plugin_logger(__name__)
 
@@ -209,8 +211,18 @@ class MkdocsPlugin(BasePlugin[MkdocsPluginConfig]):
 
         return nav
 
+    def _resolve_qname(self, qualified_name: str) -> Tuple[str, ...]:
+        qname = qualified_name.replace(".", "/")
+        if self.project_config["compress_package_names_for_reference_documentation"]:
+            cls = self.__class__
+            if not cls.root_packages or not self.dirtyreload:
+                cls.root_packages = _remove_nested_modules(self.project_config["modules"])
+            for root_package in cls.root_packages:
+                qname = qname.replace(root_package.replace(".", "/"), root_package)
+        return tuple(qname.split("/"))
+
     def _resolve_link(self, qualified_name: str, files: Files) -> str:
-        qname = tuple(qualified_name.split("."))
+        qname = self._resolve_qname(qualified_name)
         original_qname = qname
         while qname:
             url = f"{self.config['api_path']}/{'/'.join(qname)}/"
@@ -225,6 +237,9 @@ class MkdocsPlugin(BasePlugin[MkdocsPluginConfig]):
 
         self.logger.error(f"Invalid reference: {qualified_name}")
         return qualified_name
+
+    def on_startup(self, *, command: Literal["build", "gh-deploy", "serve"], dirty: bool) -> None:
+        self.dirtyreload = dirty
 
     def on_config(self, config: MkDocsConfig, **kwargs):
         self.config["api_path"] = self.config["api_path"].rstrip("/")
