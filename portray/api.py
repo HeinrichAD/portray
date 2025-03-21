@@ -1,9 +1,11 @@
-"""This module defines the programmatic API that can be used to interact with `portray`
-   to generate and view documentation.
-
-   If you want to extend `portray` or use it directly from within Python - this is the place
-   to start.
 """
+This module defines the programmatic API that can be used to interact with `portray`
+to generate and view documentation.
+
+If you want to extend `portray` or use it directly from within Python - this is the place
+to start.
+"""
+
 import os
 import webbrowser
 from typing import Dict, Union

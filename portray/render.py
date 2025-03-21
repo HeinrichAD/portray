@@ -1,6 +1,8 @@
-"""Defines how to render the current project and project_config using the
+"""
+Defines how to render the current project and project_config using the
 included documentation generation utilities.
 """
+
 import os
 import shutil
 import sys
@@ -75,7 +77,7 @@ def _compress_package_names(directory: str, modules: list) -> None:
             shutil.move(source_dir, package_temp_dir)
         if len(root_packages) > 1:
             text = text_index(
-                None,
+                [],
                 overwrite_mapping={
                     root_package: root_package + "/" for root_package in root_packages
                 },

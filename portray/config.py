@@ -1,4 +1,5 @@
 """Defines the configuration defaults and load functions used by `portray`"""
+
 import _ast
 import ast
 import os
@@ -12,6 +13,7 @@ import mkdocs.exceptions as _mkdocs_exceptions  # noqa
 import yaml
 from git import Repo
 from portray.exceptions import NoProjectFound
+from setuptools import find_namespace_packages, find_packages
 from toml import load as toml_load
 
 PORTRAY_DEFAULTS = {
@@ -117,8 +119,8 @@ def setup_py(location: str) -> dict:
         with open(location) as setup_py_file:
             for node in ast.walk(ast.parse(setup_py_file.read())):
                 if (
-                    type(node) == _ast.Call
-                    and type(getattr(node, "func", None)) == _ast.Name
+                    type(node) is _ast.Call
+                    and type(getattr(node, "func", None)) is _ast.Name
                     and node.func.id == "setup"  # type: ignore
                 ):
                     for keyword in node.keywords:  # type: ignore
@@ -163,6 +165,17 @@ def toml(location: str) -> dict:
         if "modules" not in config:
             if "setuptools" in tools and "packages" in tools["setuptools"]:
                 config["modules"] = tools["setuptools"]["packages"]
+                if isinstance(config["modules"], dict) and config["modules"].__contains__("find"):
+                    # resolve dynamic "find" command
+                    # also see: https://setuptools.pypa.io/en/latest/userguide/package_discovery.html#custom-discovery
+                    namespace = config["modules"]["find"].get("namespaces", True)
+                    where = config["modules"]["find"].get("where", ".")
+                    exclude = config["modules"]["find"].get("exclude", [])
+                    include = config["modules"]["find"].get("include", ["*"])
+                    if namespace:
+                        config["modules"] = find_namespace_packages(where, exclude, include)
+                    else:
+                        config["modules"] = find_packages(where, exclude, include)
             elif (
                 "flit" in tools
                 and "metadata" in tools["flit"]

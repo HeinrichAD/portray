@@ -289,7 +289,7 @@ class MkdocsPlugin(BasePlugin[MkdocsPluginConfig]):
         if config["nav"]:
             self._replace_nav_placeholder(config)
 
-    def on_files(self, files: Files, *, config: MkDocsConfig) -> Files | None:
+    def on_files(self, files: Files, *, config: MkDocsConfig) -> Union[Files, None]:
         # add API doc files to the MkDocs file collection
         # these files are not automatically added by MkDocs since they are not located in the docs directory
         for file in self.api_files:
@@ -316,7 +316,7 @@ class MkdocsPlugin(BasePlugin[MkdocsPluginConfig]):
 
     def on_page_content(
         self, html: str, page: Page, config: MkDocsConfig, files: Files
-    ) -> str | None:
+    ) -> Union[str, None]:
         # replace all links to pdoc documentation with links to the generated documentation
         # use on_page_content instead of on_page_markdown since the latter would also replace links in code blocks
         handled: List[str] = []
